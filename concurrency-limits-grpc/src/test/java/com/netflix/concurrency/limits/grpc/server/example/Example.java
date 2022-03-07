@@ -26,16 +26,13 @@ public class Example {
         final TestServer server = TestServer.newBuilder()
             .concurrency(2)
             .lognormal(20, 1, TimeUnit.MINUTES)
-            .limiter(CharonLimiter.newBuilder()
-                .named("CharonLimiter")
-                .metricRegistry(new SpectatorMetricRegistry(registry, registry.createId("unit.test.limiter")))
+            .limiter(
+                new GrpcServerLimiterBuilder()
+                        .limit(WindowedLimit.newBuilder()
+                                .minWindowTime(1, TimeUnit.SECONDS)
+                                .windowSize(10)
+                                .build(limit))
                 .build()
-                // new GrpcServerLimiterBuilder()
-                //         .limit(WindowedLimit.newBuilder()
-                //                 .minWindowTime(1, TimeUnit.SECONDS)
-                //                 .windowSize(10)
-                //                 .build(limit))
-                // .build()
                 )
             .build();
 
