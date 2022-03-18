@@ -1,9 +1,12 @@
 package com.netflix.concurrency.limits.grpc.server.example;
 
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.netflix.concurrency.limits.grpc.client.ConcurrencyLimitClientInterceptor;
+import com.netflix.concurrency.limits.grpc.client.CharonConcurrencyLimitClientInterceptor;
 import com.netflix.concurrency.limits.limit.FixedLimit;
 import com.netflix.concurrency.limits.limiter.SimpleLimiter;
+import com.netflix.concurrency.limits.Limiter;
+import com.netflix.concurrency.limits.grpc.client.GrpcClientRequestContext;
+import com.netflix.concurrency.limits.grpc.client.GrpcClientLimiterBuilder;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientInterceptors;
@@ -126,6 +129,12 @@ public class CharonDriver {
     private final int port;
     Random rand = new Random(); //instance of random class
 
+    Limiter<GrpcClientRequestContext> limiter = new GrpcClientLimiterBuilder()
+            .blockOnLimit(true)
+            .build();
+
+    CharonConcurrencyLimitClientInterceptor interceptor = new CharonConcurrencyLimitClientInterceptor(limiter);
+
     public CharonDriver(Builder builder) {
         this.segments = builder.segments;
         this.runtime = builder.runtimeSeconds;
@@ -171,10 +180,14 @@ public class CharonDriver {
                     this.metadata.put(ID_HEADER, String.valueOf(tokens));
         
                     // this.channel.shutdown();
-                    this.channel = ClientInterceptors.intercept(NettyChannelBuilder.forTarget("localhost:" + port)
-                            .usePlaintext(true)
-                            .build(),
-                                MetadataUtils.newAttachHeadersInterceptor(this.metadata));
+                    
+                    this.channel = ClientInterceptors.intercept(
+                        ClientInterceptors.intercept(
+                            NettyChannelBuilder.forTarget("localhost:" + port)
+                                .usePlaintext(true)
+                                .build(),
+                            MetadataUtils.newAttachHeadersInterceptor(this.metadata)),
+                        interceptor);
         
                     System.out.println("Metadata on the Client side: " + this.metadata);
 
@@ -183,6 +196,7 @@ public class CharonDriver {
                             new StreamObserver<String>() {
                                 @Override
                                 public void onNext(String value) {
+                                    // System.out.println(value);
                                 }
 
                                 @Override

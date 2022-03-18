@@ -5,10 +5,6 @@ import com.netflix.concurrency.limits.limit.Gradient2Limit;
 import com.netflix.concurrency.limits.limit.GradientLimit;
 import com.netflix.concurrency.limits.limit.WindowedLimit;
 
-import com.netflix.concurrency.limits.limiter.CharonLimiter;
-import com.netflix.concurrency.limits.spectator.SpectatorMetricRegistry;
-import com.netflix.spectator.api.DefaultRegistry;
-
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.concurrent.Executors;
@@ -21,7 +17,6 @@ public class Example {
     public static void main(String[] args) throws IOException {
         final Gradient2Limit limit = Gradient2Limit.newBuilder().build();
 
-        DefaultRegistry registry = new DefaultRegistry();
         // Create a server
         final TestServer server = TestServer.newBuilder()
             .concurrency(2)

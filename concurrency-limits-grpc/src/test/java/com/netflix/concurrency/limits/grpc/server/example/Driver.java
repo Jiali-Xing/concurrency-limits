@@ -43,7 +43,7 @@ public class Driver {
         private int port;
         private long runtimeSeconds;
         private Consumer<Long> latencyAccumulator;
-        private String id = "ThisIsDriverID";
+        private String id = "";
 
         public Builder normal(double mean, double sd, long duration, TimeUnit units) {
             final NormalDistribution distribution = new NormalDistribution(mean, sd);
@@ -114,30 +114,24 @@ public class Driver {
     }
 
     private final List<Segment> segments;
-    private Channel channel;
+    private final Channel channel;
     private final long runtime;
     private final Consumer<Long> latencyAccumulator;
     private final AtomicInteger successCounter = new AtomicInteger(0);
     private final AtomicInteger dropCounter = new AtomicInteger(0);
 
-    Metadata metadata = new Metadata();
-    private final int port;
-
     public Driver(Builder builder) {
         this.segments = builder.segments;
         this.runtime = builder.runtimeSeconds;
         this.latencyAccumulator = builder.latencyAccumulator;
-        
-        this.port = builder.port;
-        this.metadata.put(ID_HEADER, builder.id);
+
+        Metadata metadata = new Metadata();
+        metadata.put(ID_HEADER, builder.id);
 
         this.channel = ClientInterceptors.intercept(NettyChannelBuilder.forTarget("localhost:" + builder.port)
                 .usePlaintext(true)
                 .build(),
-                    MetadataUtils.newAttachHeadersInterceptor(this.metadata));
-
-        System.out.println("Metadata: ");
-        System.out.println(this.metadata);
+                    MetadataUtils.newAttachHeadersInterceptor(metadata));
     }
 
     public int getAndResetSuccessCount() { return successCounter.getAndSet(0); }
@@ -163,18 +157,6 @@ public class Driver {
                     }
                     
                     long startTime = System.nanoTime();
-
-                    this.metadata.discardAll(ID_HEADER);
-                    this.metadata.put(ID_HEADER, String.valueOf(startTime));
-        
-                    this.channel = ClientInterceptors.intercept(NettyChannelBuilder.forTarget("localhost:" + port)
-                            .usePlaintext(true)
-                            .build(),
-                                MetadataUtils.newAttachHeadersInterceptor(this.metadata));
-        
-                    System.out.println("Metadata on the Client side: ");
-                    System.out.println(this.metadata);
-
                     Uninterruptibles.sleepUninterruptibly(Math.max(0, segment.nextDelay()), TimeUnit.MILLISECONDS);
                     ClientCalls.asyncUnaryCall(channel.newCall(TestServer.METHOD_DESCRIPTOR, CallOptions.DEFAULT.withWaitForReady()), "request",
                             new StreamObserver<String>() {

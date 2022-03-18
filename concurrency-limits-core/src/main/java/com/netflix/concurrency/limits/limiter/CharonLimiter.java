@@ -62,12 +62,12 @@ public abstract class CharonLimiter<ContextT> extends AbstractLimiter<ContextT> 
          * @param percent
          * @return Chainable builder
          */
-        public BuilderT partition(String name, double percent) {
-            Preconditions.checkArgument(name != null, "Partition name may not be null");
-            Preconditions.checkArgument(percent >= 0.0 && percent <= 1.0, "Partition percentage must be in the range [0.0, 1.0]");
-            // partitions.computeIfAbsent(name, Partition::new).setPercent(percent);
-            return self();
-        }
+        // public BuilderT partition(String name, double percent) {
+        //     Preconditions.checkArgument(name != null, "Partition name may not be null");
+        //     Preconditions.checkArgument(percent >= 0.0 && percent <= 1.0, "Partition percentage must be in the range [0.0, 1.0]");
+        //     // partitions.computeIfAbsent(name, Partition::new).setPercent(percent);
+        //     return self();
+        // }
 
         /**
          * Delay introduced in the form of a sleep to slow down the caller from the server side.  Because this can hold
@@ -86,8 +86,6 @@ public abstract class CharonLimiter<ContextT> extends AbstractLimiter<ContextT> 
         /**
          * Set the maximum number of threads that can be held up or delayed when rejecting excessive traffic for a partition.
          * The default value is 100.
-         * @param maxDelayedThreads
-         * @return Chainable builder
          */
         // public BuilderT maxDelayedThreads(int maxDelayedThreads) {
         //     this.maxDelayedThreads = maxDelayedThreads;
@@ -227,7 +225,7 @@ public abstract class CharonLimiter<ContextT> extends AbstractLimiter<ContextT> 
 
         try {
             lock.lock();
-            // if (getInflight() >= getLimit() && partition == "1") {
+            // if (getInflight() >= getLimit()) {
             if (Integer.valueOf(partition) < 5) {
                 lock.unlock();
                 // if (partition.backoffMillis > 0 && delayedThreads.get() < maxDelayedThreads) {
