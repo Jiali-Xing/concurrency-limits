@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 buildscript {
     repositories {
         mavenCentral()
@@ -11,7 +13,7 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.netflixoss' version '9.1.0'
+    id 'nebula.netflixoss' version '10.6.0'
 }
 
 // Establish version and status
@@ -19,10 +21,26 @@ ext.githubProjectName = rootProject.name
 
 subprojects {
     apply plugin: 'nebula.netflixoss'
+    apply plugin: 'java-library'
     group = "com.netflix.${githubProjectName}" 
 
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }
+    }
+
+
+    ext {
+        grpcVersion = "1.9.0"
+        jUnitVersion = "5.+"
+        jUnitLegacyVersion = "4.+"
+        mockitoVersion = "4.+"
+        slf4jVersion = "1.7.+"
+        spectatorVersion = "1.+"
+        springVersion = "5.+"
+    }
+
+    tasks.withType(Test) {
+        useJUnitPlatform()
     }
 }

@@ -1,7 +1,5 @@
 package com.netflix.concurrency.limits.limiter;
 
-import com.kevinmost.junit_retry_rule.Retry;
-import com.kevinmost.junit_retry_rule.RetryRule;
 import com.netflix.concurrency.limits.Limiter;
 import com.netflix.concurrency.limits.limit.SettableLimit;
 import org.junit.Assert;
@@ -23,9 +21,6 @@ import java.util.stream.IntStream;
 
 public class LifoBlockingLimiterTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(LifoBlockingLimiterTest.class);
-
-    @Rule
-    public final RetryRule retry = new RetryRule();
 
     final Executor executor = Executors.newCachedThreadPool();
 
@@ -119,32 +114,31 @@ public class LifoBlockingLimiterTest {
     }
 
     @Test
-    @Retry(times=5)
     public void verifyFifoOrder() {
         // Make sure all tokens are acquired
         List<Optional<Limiter.Listener>> firstBatch = acquireN(blockingLimiter, 4);
 
         // Kick off 5 requests with a small delay to ensure futures are created in the correct order
         List<Integer> values = new CopyOnWriteArrayList<>();
-        List<CompletableFuture<Integer>> futures = IntStream.range(0, 5)
+        List<CompletableFuture<Void>> futures = IntStream.range(0, 5)
                 .peek(i -> {
                     try {
                         TimeUnit.MILLISECONDS.sleep(50);
                     } catch (InterruptedException e) {
                     }
                 })
-                .mapToObj(i -> CompletableFuture.supplyAsync(() -> {
+                .mapToObj(i -> CompletableFuture.<Void>supplyAsync(() -> {
                     Optional<Limiter.Listener> listener = blockingLimiter.acquire(null);
                     if (!listener.isPresent()) {
-                        return -1;
+                        values.add(-1);
                     }
                     try {
-                        return i;
+                        values.add(i);
                     } finally {
                         listener.get().onSuccess();
                     }
+                    return null;
                 }, executor))
-                .peek(future -> future.whenComplete((value, error) -> values.add(value)))
                 .collect(Collectors.toList());
 
         // Release the first batch of tokens
